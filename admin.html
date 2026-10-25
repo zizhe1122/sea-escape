@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>海域逃亡 · 管理员后台</title>
+<style>
+:root{--bg:#061320;--line:rgba(120,220,255,.2);--cyan:#3fe0ff;--gold:#ffd76a;
+  --txt:#eaf6ff;--dim:rgba(234,246,255,.55);--ok:#37e6a0;--bad:#ff6b6b;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  color:var(--txt);background:radial-gradient(700px 420px at 10% -10%,rgba(63,224,255,.12),transparent 60%),
+  radial-gradient(600px 400px at 100% 0%,rgba(255,215,106,.08),transparent 60%),var(--bg);
+  overflow-x:hidden}
+button,input,select{font-family:inherit;font-size:15px}
+button{cursor:pointer;border:0;color:#fff}
+.hide{display:none!important}
+.wrap{max-width:760px;margin:0 auto;padding:18px 14px 60px}
+h1{font-size:22px;margin:0 0 4px;letter-spacing:2px}
+.panel{background:rgba(10,32,54,.6);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px}
+.lab{font-size:12.5px;color:var(--dim);margin:0 0 6px 3px}
+.inp{width:100%;height:46px;border-radius:12px;border:1px solid var(--line);
+  background:rgba(0,15,30,.5);color:#fff;padding:0 13px;outline:none}
+.inp:focus{border-color:var(--cyan)}
+.btn{height:48px;border-radius:13px;font-weight:800;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.08);border:1px solid var(--line)}
+.btn:active{transform:scale(.97)}
+.grad{background:linear-gradient(120deg,#1ea8c8,#3fe0ff);border:0;color:#04222e}
+.gold{background:linear-gradient(120deg,#ffb84d,#ffd76a);border:0;color:#3a2500}
+.mini{height:42px;padding:0 14px;border-radius:11px;background:rgba(255,255,255,.08);white-space:nowrap;font-size:14px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+h3{margin:0 0 12px;font-size:15px;display:flex;align-items:center;gap:7px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:14px;padding:12px}
+.stat .k{font-size:11.5px;color:var(--dim)}
+.stat .v{font-size:19px;font-weight:900;color:var(--cyan);margin-top:3px;font-variant-numeric:tabular-nums}
+.stat.g .v{color:var(--gold)}
+.codes{background:rgba(0,15,30,.6);border:1px dashed var(--line);border-radius:12px;padding:12px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.9;
+  max-height:230px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;margin-top:10px}
+.codes .u{color:var(--dim);text-decoration:line-through}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:8px 6px;text-align:left;border-bottom:1px solid rgba(255,255,255,.07)}
+th{color:var(--dim);font-weight:600;font-size:11.5px}
+td{font-variant-numeric:tabular-nums}
+.scroll{max-height:420px;overflow-y:auto;margin:0 -4px;padding:0 4px}
+.tabs{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap}
+.tab{height:38px;padding:0 14px;border-radius:11px;background:rgba(255,255,255,.06);font-size:13.5px;font-weight:700;color:var(--dim)}
+.tab.on{background:rgba(63,224,255,.18);color:#fff}
+.tag{font-size:10.5px;padding:2px 7px;border-radius:7px;background:rgba(255,215,106,.16);color:var(--gold);font-weight:800}
+.tag.no{background:rgba(55,230,160,.14);color:var(--ok)}
+.toast{position:fixed;left:50%;top:18px;transform:translateX(-50%) translateY(-10px);
+  background:rgba(6,22,38,.96);border:1px solid var(--line);padding:10px 16px;border-radius:12px;
+  font-size:13.5px;z-index:99;opacity:0;transition:.22s;pointer-events:none;max-width:88vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.note{font-size:12px;color:var(--dim);line-height:1.8;margin-top:10px}
+.qq{background:linear-gradient(120deg,rgba(255,95,158,.14),rgba(255,215,106,.12));
+  border:1px dashed rgba(255,215,106,.4);border-radius:12px;padding:11px;text-align:center;font-size:13px}
+.qq b{color:var(--gold);font-size:15px;letter-spacing:1px}
+@media(min-width:720px){.grid{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<!-- 登录 -->
+<div class="wrap hide" id="loginBox" style="max-width:420px;padding-top:60px">
+  <h1>🔱 管理员后台</h1>
+  <p style="color:var(--dim);font-size:13px;margin:0 0 20px">海域逃亡 · 仅管理员可进入</p>
+  <div class="panel">
+    <p class="lab">管理员昵称</p>
+    <input class="inp" id="aName" placeholder="你的游戏昵称" autocomplete="off">
+    <p class="lab" style="margin-top:12px">密码</p>
+    <input class="inp" id="aPwd" type="password" placeholder="登录密码">
+    <button class="btn grad" id="aBtn" style="width:100%;margin-top:16px">登录后台</button>
+    <div class="note">
+      还没有管理员？先在游戏站注册账号，然后在 Supabase SQL Editor 执行：<br>
+      <code style="color:var(--cyan);font-size:11.5px">select api_bootstrap_admin('你的昵称','sea-admin-init-2024');</code>
+    </div>
+    <div class="note">
+      服务器配置与游戏站共用（同域名下自动读取）。若跨域使用，请在这里补填：
+      <div class="row" style="margin-top:8px">
+        <input class="inp" id="cfgUrl" placeholder="https://xxx.supabase.co" style="flex:1;min-width:180px">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input class="inp" id="cfgKey" placeholder="anon key" style="flex:1;min-width:180px">
+      </div>
+      <button class="btn mini" id="cfgSave" style="margin-top:8px">保存配置</button>
+    </div>
+  </div>
+</div>
+
+<!-- 后台 -->
+<div class="wrap hide" id="adminBox">
+  <div class="row" style="margin-bottom:14px">
+    <h1 style="flex:1">🔱 管理员后台</h1>
+    <button class="mini" id="logoutBtn">退出</button>
+  </div>
+
+  <div class="panel">
+    <h3>📊 数据概览</h3>
+    <div class="grid" id="stats"></div>
+    <button class="mini" id="refreshBtn" style="margin-top:12px">🔄 刷新</button>
+  </div>
+
+  <div class="panel">
+    <h3>⚙️ 规则开关</h3>
+    <div class="grid" id="setBox"></div>
+    <div class="note">
+      · <b>单 IP 限 1 号</b>：开启后同一网络只能注册 1 个账号（同一 WiFi／校园网下的朋友会受影响，可在用户管理里删除账号释放 IP）<br>
+      · <b>注册赠礼</b>：系统<b>唯一</b>的一次性发放，改动只对之后注册的账号生效<br>
+      · <b>每天释放量</b>：CDK 兑换后的日释放额度，改动只影响之后兑换的记录
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>🎟️ 生成 CDK</h3>
+    <div class="row">
+      <div style="flex:1;min-width:110px">
+        <p class="lab">数量（1-200）</p>
+        <input class="inp" id="gCount" type="number" value="10">
+      </div>
+      <div style="flex:1;min-width:110px">
+        <p class="lab">面额（贝壳）</p>
+        <input class="inp" id="gValue" type="number" value="600">
+      </div>
+    </div>
+    <p class="lab" style="margin-top:10px">备注（可选，如「国庆活动」）</p>
+    <input class="inp" id="gNote" placeholder="用于你自己区分批次" autocomplete="off">
+    <button class="btn gold" id="genBtn" style="width:100%;margin-top:12px;color:#3a2500">随机生成 CDK</button>
+    <div class="codes hide" id="codeOut"></div>
+    <div class="row hide" id="codeOps" style="margin-top:10px">
+      <button class="mini" id="copyBtn">📋 复制全部</button>
+      <button class="mini" id="csvBtn">⬇️ 导出 CSV</button>
+      <button class="mini" id="clearBtn">清空显示</button>
+    </div>
+    <div class="note">
+      默认面额 600 枚 = 每天释放 20 枚 × 30 天。改动面额后释放天数会自动按 <b>面额 ÷ 20</b> 计算。<br>
+      玩家在游戏内「💰 钱包 → CDK 兑换」填入；CDK 获取方式对玩家展示为：<b>联系管理员 QQ 群 9121449343</b>。
+    </div>
+    <div class="qq" style="margin-top:12px">玩家获取渠道提示 · QQ 群：<b>9121449343</b></div>
+  </div>
+
+  <div class="panel">
+    <h3>📜 CDK 列表</h3>
+    <div class="tabs">
+      <button class="tab on" data-f="all">全部</button>
+      <button class="tab" data-f="new">未使用</button>
+      <button class="tab" data-f="used">已使用</button>
+    </div>
+    <div class="scroll"><table><thead><tr><th>CDK</th><th>面额</th><th>备注</th><th>状态</th></tr></thead>
+      <tbody id="cdkBody"></tbody></table></div>
+  </div>
+
+  <div class="panel">
+    <h3>👥 用户管理</h3>
+    <div class="row">
+      <input class="inp" id="uKw" placeholder="搜索昵称或 IP" style="flex:1;min-width:140px" autocomplete="off">
+      <button class="mini" id="uSearch">搜索</button>
+    </div>
+    <div class="scroll" style="margin-top:10px">
+      <table><thead><tr><th>玩家</th><th>贝壳</th><th>释放中</th><th>注册 IP</th><th>操作</th></tr></thead>
+      <tbody id="uBody"></tbody></table>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <input class="inp" id="adjName" placeholder="昵称" style="flex:1;min-width:110px" autocomplete="off">
+      <input class="inp" id="adjAmt" type="number" placeholder="+100 / -100" style="flex:1;min-width:110px">
+      <button class="mini" id="adjBtn">调整贝壳</button>
+    </div>
+    <div class="note">调整会写入操作日志，可用于补偿误操作或活动奖励。负数会扣减，扣到 0 为止。</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+// ============================================================
+//  部署前把你的 Supabase 信息填进下面两行（和 index.html 填一样的内容），
+//  这样打开后台就不用再手动填配置了。
+// ============================================================
+const BUILTIN_URL = '';   // 例：'https://abcdefgh.supabase.co'
+const BUILTIN_KEY = '';   // 只填 anon / publishable key
+
+const LS = {
+  get url(){ return localStorage.getItem('sea_url') || BUILTIN_URL || '' },
+  get key(){ return localStorage.getItem('sea_key') || BUILTIN_KEY || '' },
+  get tok(){ return localStorage.getItem('sea_admin_tok')||'' },
+  set(k,v){ localStorage.setItem('sea_'+k,v) },
+  del(k){ localStorage.removeItem('sea_'+k) },
+};
+let SB=null, TOK=LS.tok, lastCodes=[];
+const fmt = v => { const n=Number(v)||0;
+  return n>=1000000 ? (n/1000000).toFixed(2)+'M' : (n>=10000?(n/1000).toFixed(2)+'K':String(Math.round(n*100)/100)); };
+const esc = s => String(s==null?'':s).replace(/[<>&"]/g,m=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[m]));
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');
+  clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2300);}
+function sb(){
+  if(SB) return SB;
+  if(!LS.url||!LS.key){ toast('缺少服务器配置'); return null; }
+  SB = window.supabase.createClient(LS.url, LS.key); return SB;
+}
+async function rpc(fn,args={}){
+  const c=sb(); if(!c) return {ok:false};
+  try{
+    const {data,error}=await c.rpc(fn,args);
+    if(error) throw error;
+    return data||{ok:false,msg:'空'};
+  }catch(e){
+    const m=String(e.message||e);
+    if(/未登录|过期/.test(m)){ TOK=''; LS.del('admin_tok'); showLogin(); }
+    toast(m.replace(/^ERROR:\s*/,'').slice(0,60));
+    return {ok:false,msg:m};
+  }
+}
+function showLogin(){ $('adminBox').classList.add('hide'); $('loginBox').classList.remove('hide'); }
+function showAdmin(){ $('loginBox').classList.add('hide'); $('adminBox').classList.remove('hide'); }
+
+/* ---------- 登录 ---------- */
+async function doLogin(){
+  const n=$('aName').value.trim(), p=$('aPwd').value;
+  if(!n||!p){ toast('填写昵称和密码'); return; }
+  const btn=$('aBtn'); btn.disabled=true; btn.textContent='验证中…';
+  const r = await rpc('api_login',{p_username:n,p_password:p});
+  btn.disabled=false; btn.textContent='登录后台';
+  if(!r.ok) return;
+  const chk = await rpc('api_admin_overview',{p_token:r.token});
+  if(!chk.ok){ toast('该账号不是管理员'); return; }
+  TOK=r.token; LS.set('admin_tok',TOK); $('aPwd').value='';
+  showAdmin(); loadAll();
+}
+
+/* ---------- 概览 ---------- */
+async function loadStats(){
+  const r = await rpc('api_admin_overview',{p_token:TOK}); if(!r.ok) return;
+  const items = [
+    ['注册用户', r.users, ''], ['今日注册', r.reg_today, ''],
+    ['注册 IP 数', r.ips, ''], ['流通贝壳', fmt(r.shells), 'g'],
+    ['释放中(锁定)', fmt(r.locked), ''], ['CDK 总数', r.cdk_total, ''],
+    ['CDK 已使用', r.cdk_used, ''], ['海神殿累计', fmt(r.temple), 'g'],
+    ['当前期号', r.round_no, ''], ['今日下注数', r.bets_today, ''],
+  ];
+  $('stats').innerHTML = items.map(([k,v,c])=>
+    `<div class="stat ${c}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+  renderSettings(r.settings||{});
+}
+
+/* ---------- 规则开关 ---------- */
+const SETS = [
+  {k:'ip_limit',     n:'单 IP 限 1 个账号', type:'switch', on:'on',  off:'off'},
+  {k:'reg_gift',     n:'注册赠礼（枚）',     type:'number', def:'10'},
+  {k:'transfer_min', n:'转赠门槛（枚）',     type:'number', def:'100'},
+  {k:'release_per_day', n:'CDK 每天释放（枚）', type:'number', def:'20'},
+];
+function renderSettings(cur){
+  $('setBox').innerHTML = SETS.map(s=>{
+    const v = cur[s.k] ?? s.def;
+    if(s.type === 'switch'){
+      return `<div class="stat"><div class="k">${s.n}</div>
+        <div class="row" style="margin-top:6px">
+          <button class="mini" data-sw="${s.k}" data-v="on"
+            style="background:${v==='on'?'rgba(55,230,160,.2)':'rgba(255,255,255,.06)'};height:36px">
+            ${v==='on'?'已开启':'开启'}</button>
+          <button class="mini" data-sw="${s.k}" data-v="off"
+            style="background:${v==='off'?'rgba(255,107,107,.2)':'rgba(255,255,255,.06)'};height:36px">
+            ${v==='off'?'已关闭':'关闭'}</button>
+        </div></div>`;
+    }
+    return `<div class="stat"><div class="k">${s.n}</div>
+      <div class="row" style="margin-top:6px">
+        <input class="inp" data-in="${s.k}" value="${esc(v)}" style="height:36px">
+        <button class="mini" data-sv="${s.k}" style="height:36px">保存</button>
+      </div></div>`;
+  }).join('');
+  $('setBox').querySelectorAll('button[data-sw]').forEach(b=>{
+    b.onclick = async ()=>{
+      const r = await rpc('api_admin_set_setting',{p_token:TOK,p_key:b.dataset.sw,p_value:b.dataset.v});
+      if(r.ok){ toast('已更新'); loadStats(); }
+    };
+  });
+  $('setBox').querySelectorAll('button[data-sv]').forEach(b=>{
+    b.onclick = async ()=>{
+      const v = $('setBox').querySelector(`input[data-in="${b.dataset.sv}"]`).value.trim();
+      if(!v){ toast('不能为空'); return; }
+      const r = await rpc('api_admin_set_setting',{p_token:TOK,p_key:b.dataset.sv,p_value:v});
+      if(r.ok){ toast('已保存'); loadStats(); }
+    };
+  });
+}
+
+/* ---------- CDK ---------- */
+$('genBtn').onclick = async ()=>{
+  const n = parseInt($('gCount').value)||10, v = parseFloat($('gValue').value)||600;
+  const note = $('gNote').value.trim();
+  const btn=$('genBtn'); btn.disabled=true; btn.textContent='生成中…';
+  const r = await rpc('api_admin_gen_cdk',{p_token:TOK,p_count:n,p_value:v,p_note:note});
+  btn.disabled=false; btn.textContent='随机生成 CDK';
+  if(!r.ok) return;
+  lastCodes = r.codes||[];
+  $('codeOut').classList.remove('hide'); $('codeOps').classList.remove('hide');
+  $('codeOut').innerHTML = lastCodes.join('\n');
+  toast(`已生成 ${lastCodes.length} 张 CDK`);
+  loadCdk(); loadStats();
+};
+$('copyBtn').onclick = async ()=>{
+  try{ await navigator.clipboard.writeText(lastCodes.join('\n')); toast('已复制到剪贴板'); }
+  catch(e){ toast('复制失败，请手动选中'); }
+};
+$('csvBtn').onclick = ()=>{
+  const csv = 'code,value\n' + lastCodes.map(c=>`${c},${$('gValue').value}`).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));
+  a.download='cdk_'+Date.now()+'.csv'; a.click();
+};
+$('clearBtn').onclick = ()=>{ $('codeOut').classList.add('hide'); $('codeOps').classList.add('hide'); };
+
+let cdkFilter='all';
+document.querySelectorAll('.tab[data-f]').forEach(b=>{
+  b.onclick=()=>{ document.querySelectorAll('.tab[data-f]').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); cdkFilter=b.dataset.f; loadCdk(); };
+});
+async function loadCdk(){
+  const r = await rpc('api_admin_list_cdk',{p_token:TOK,p_filter:cdkFilter}); if(!r.ok) return;
+  const list = r.list||[];
+  $('cdkBody').innerHTML = list.length ? list.map(c=>`
+    <tr><td style="font-family:ui-monospace,monospace">${esc(c.code)}</td>
+      <td>🪙 ${fmt(c.value)}</td>
+      <td style="color:var(--dim)">${esc(c.note||'-')}</td>
+      <td>${c.used_name ? `<span class="tag no">${esc(c.used_name)}</span>`
+                       : '<span class="tag">未使用</span>'}</td></tr>`).join('')
+    : '<tr><td colspan="4" style="color:var(--dim);text-align:center;padding:16px">暂无数据</td></tr>';
+}
+
+/* ---------- 用户 ---------- */
+async function loadUsers(kw){
+  const r = await rpc('api_admin_users',{p_token:TOK,p_kw:kw||''}); if(!r.ok) return;
+  const list = r.list||[];
+  $('uBody').innerHTML = list.length ? list.map(u=>`
+    <tr><td>${u.avatar} ${esc(u.name)} ${u.is_admin?'<span class="tag">管理员</span>':''}
+        ${u.ip_dup?'<span class="tag" style="background:rgba(255,107,107,.18);color:#ff8a8a">IP重复</span>':''}</td>
+      <td>🪙 ${fmt(u.shells)}</td>
+      <td style="color:var(--cyan)">${fmt(u.locked)}</td>
+      <td style="font-size:11px">${esc(u.reg_ip||'-')}</td>
+      <td><button class="mini" data-adm="${esc(u.name)}" data-f="${u.is_admin?0:1}"
+            style="height:30px;padding:0 9px;font-size:11.5px">${u.is_admin?'取消管理':'设为管理'}</button>
+          <button class="mini" data-del="${esc(u.name)}"
+            style="height:30px;padding:0 9px;font-size:11.5px;background:rgba(255,107,107,.16)">删除</button></td></tr>`).join('')
+    : '<tr><td colspan="5" style="color:var(--dim);text-align:center;padding:16px">没有匹配的玩家</td></tr>';
+  $('uBody').querySelectorAll('button[data-adm]').forEach(b=>{
+    b.onclick = async ()=>{
+      const r2 = await rpc('api_admin_set_admin',{p_token:TOK,p_name:b.dataset.adm,p_flag:b.dataset.f==='1'});
+      if(r2.ok){ toast(b.dataset.f==='1'?'已设为管理员':'已取消管理员'); loadUsers($('uKw').value.trim()); }
+    };
+  });
+  $('uBody').querySelectorAll('button[data-del]').forEach(b=>{
+    b.onclick = async ()=>{
+      if(!confirm(`确定删除「${b.dataset.del}」？该账号的贝壳、记录将一并清除，其占用的注册 IP 会被释放。`)) return;
+      const r2 = await rpc('api_admin_del_user',{p_token:TOK,p_name:b.dataset.del});
+      if(r2.ok){ toast(r2.msg||'已删除'); loadUsers($('uKw').value.trim()); loadStats(); }
+    };
+  });
+}
+$('uSearch').onclick = ()=>loadUsers($('uKw').value.trim());
+$('uKw').addEventListener('keydown',e=>{ if(e.key==='Enter') loadUsers($('uKw').value.trim()); });
+$('adjBtn').onclick = async ()=>{
+  const n=$('adjName').value.trim(), a=parseFloat($('adjAmt').value);
+  if(!n||!a){ toast('填写昵称和数量'); return; }
+  const r = await rpc('api_admin_adjust',{p_token:TOK,p_name:n,p_amount:a,p_reason:'后台调整'});
+  if(r.ok){ toast(`${n} 当前余额 ${fmt(r.shells)}`); loadUsers($('uKw').value.trim()); loadStats(); }
+};
+
+function loadAll(){ loadStats(); loadCdk(); loadUsers(''); }
+$('refreshBtn').onclick = loadAll;
+$('logoutBtn').onclick = ()=>{ TOK=''; LS.del('admin_tok'); showLogin(); };
+$('cfgSave').onclick = ()=>{
+  const u=$('cfgUrl').value.trim().replace(/\/+$/,''), k=$('cfgKey').value.trim();
+  if(!/^https:\/\/.+\.supabase\.(co|in)$/.test(u)){ toast('URL 格式不对'); return; }
+  if(k.length<40){ toast('Key 不完整'); return; }
+  LS.set('url',u); LS.set('key',k); SB=null; toast('配置已保存');
+};
+
+$('cfgUrl').value = LS.url; $('cfgKey').value = LS.key;
+$('aPwd').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+$('aBtn').onclick = doLogin;
+if(TOK){ showAdmin(); loadAll(); } else showLogin();
+</script>
+</body>
+</html>

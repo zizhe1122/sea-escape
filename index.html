@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>海域逃亡 · 深海躲猫猫</title>
+<style>
+:root{
+  --bg:#050f1c; --deep:#071b2e; --card:rgba(255,255,255,.05); --line:rgba(120,220,255,.18);
+  --cyan:#3fe0ff; --cyan2:#1ea8c8; --gold:#ffd76a; --pink:#ff5f9e; --ok:#37e6a0; --bad:#ff6b6b;
+  --txt:#eaf6ff; --dim:rgba(234,246,255,.55);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","WenQuanYi Micro Hei","Microsoft YaHei",sans-serif;
+  color:var(--txt);overflow:hidden;background:var(--bg);
+}
+button,input,select{font-family:inherit;font-size:15px}
+button{cursor:pointer;border:0;color:#fff;background:none}
+.hide{display:none!important}
+.screen{position:fixed;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* 水下光影背景 */
+.aqua{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;
+  background:
+    radial-gradient(700px 420px at 15% -5%,rgba(63,224,255,.16),transparent 60%),
+    radial-gradient(600px 400px at 95% 8%,rgba(124,92,255,.14),transparent 60%),
+    radial-gradient(900px 600px at 50% 110%,rgba(30,168,200,.18),transparent 60%);
+}
+.aqua::after{content:"";position:absolute;inset:-20% -10%;
+  background:repeating-linear-gradient(115deg,transparent 0 22px,rgba(120,220,255,.05) 22px 44px);
+  animation:wave 9s linear infinite}
+@keyframes wave{to{transform:translateX(-44px) translateY(-18px)}}
+.bubbles{position:fixed;inset:0;z-index:0;pointer-events:none}
+.bubbles i{position:absolute;bottom:-30px;border-radius:50%;background:rgba(160,240,255,.22);
+  animation:rise linear infinite}
+@keyframes rise{to{transform:translateY(-105vh);opacity:0}}
+
+/* ---------- 登录 ---------- */
+#auth{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:30px 22px;position:relative;z-index:1}
+.logo{font-size:56px;filter:drop-shadow(0 6px 18px rgba(63,224,255,.5))}
+.ttl{margin:4px 0 2px;font-size:29px;font-weight:900;letter-spacing:3px;
+  background:linear-gradient(90deg,#3fe0ff,#a5f3ff,#ffd76a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--dim);font-size:13px;margin-bottom:22px}
+.panel{width:100%;max-width:420px;background:rgba(10,32,54,.72);border:1px solid var(--line);
+  border-radius:22px;padding:20px;backdrop-filter:blur(10px);position:relative;z-index:1;
+  box-shadow:0 18px 50px rgba(0,20,40,.5)}
+.lab{font-size:12.5px;color:var(--dim);margin:0 0 6px 3px}
+.inp{width:100%;height:48px;border-radius:14px;border:1px solid var(--line);
+  background:rgba(0,15,30,.5);color:#fff;padding:0 14px;outline:none}
+.inp:focus{border-color:var(--cyan)}
+.btn{height:50px;border-radius:14px;font-weight:800;display:flex;align-items:center;justify-content:center;
+  gap:6px;background:rgba(255,255,255,.08);border:1px solid var(--line)}
+.btn:active{transform:scale(.97)}
+.grad{background:linear-gradient(120deg,#1ea8c8,#3fe0ff);border:0;color:#04222e;
+  box-shadow:0 8px 22px rgba(63,224,255,.28)}
+.gold{background:linear-gradient(120deg,#ffb84d,#ffd76a);border:0;color:#3a2500}
+.tabs{display:flex;gap:8px;margin-bottom:16px}
+.tab{flex:1;height:42px;border-radius:12px;background:rgba(255,255,255,.06);font-weight:700;color:var(--dim)}
+.tab.on{background:rgba(63,224,255,.18);color:#fff;box-shadow:inset 0 0 0 1px var(--cyan)}
+.mini{height:44px;padding:0 14px;border-radius:12px;background:rgba(255,255,255,.08);white-space:nowrap}
+.tip{font-size:12px;color:var(--dim);line-height:1.8;margin-top:12px}
+.tip b{color:#fff}
+.srcs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.src{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:13px;padding:10px;
+  display:flex;flex-direction:column;gap:2px}
+.src span{font-size:19px}
+.src b{font-size:13px}
+.src i{font-style:normal;font-size:11px;color:var(--dim);line-height:1.5}
+.once{background:linear-gradient(120deg,rgba(255,215,106,.16),rgba(63,224,255,.1));
+  border:1px solid rgba(255,215,106,.35);border-radius:13px;padding:11px 12px;font-size:12px;
+  line-height:1.7;color:#ffeec2}
+.once b{color:var(--gold)}
+.warn{background:rgba(255,214,106,.1);border:1px solid rgba(255,214,106,.3);border-radius:12px;
+  padding:10px 12px;font-size:12px;color:#ffe6a8;line-height:1.7;margin-top:14px}
+details summary{cursor:pointer;color:var(--dim);font-size:13px;outline:none}
+
+/* ---------- 主界面 ---------- */
+#app{display:flex;flex-direction:column;position:relative;z-index:1;padding-bottom:env(safe-area-inset-bottom)}
+.topbar{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  padding-top:calc(10px + env(safe-area-inset-top));background:rgba(5,18,32,.85);
+  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20;backdrop-filter:blur(10px)}
+.brand{font-weight:900;letter-spacing:2px;font-size:16px;display:flex;align-items:center;gap:6px}
+.wallet{display:flex;align-items:center;gap:6px;background:rgba(255,215,106,.12);
+  border:1px solid rgba(255,215,106,.3);padding:6px 11px;border-radius:999px;font-weight:800;
+  color:var(--gold);font-size:14px;font-variant-numeric:tabular-nums}
+.pearl{background:rgba(200,220,255,.1);border:1px solid rgba(200,220,255,.22)}
+.ico{width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.07);
+  display:flex;align-items:center;justify-content:center;font-size:17px}
+.badge{position:absolute;top:-4px;right:-4px;background:var(--pink);color:#fff;font-size:10px;
+  min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800}
+.wrap{position:relative}
+
+/* 期次条 */
+.period{display:flex;align-items:center;gap:10px;padding:9px 12px;font-size:13px;flex-wrap:wrap}
+.pno{background:rgba(63,224,255,.14);border:1px solid var(--line);padding:5px 10px;border-radius:9px;
+  font-weight:800;color:var(--cyan)}
+.cd{margin-left:auto;font-weight:900;font-variant-numeric:tabular-nums;font-size:17px;
+  background:rgba(255,95,158,.16);padding:5px 12px;border-radius:10px;color:#ffb1cd}
+.cd.hot{background:var(--pink);color:#fff;animation:pulse .5s infinite}
+@keyframes pulse{50%{transform:scale(1.06)}}
+
+/* 地图 */
+.map{margin:0 12px;border-radius:20px;padding:14px;border:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(9,38,64,.85),rgba(6,24,42,.9));position:relative;overflow:hidden}
+.map::before{content:"";position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent 0 26px,rgba(63,224,255,.05) 26px 27px);
+  pointer-events:none}
+.rooms{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;position:relative}
+.room{position:relative;border-radius:16px;padding:11px 10px;border:1px solid rgba(120,220,255,.2);
+  background:rgba(10,40,68,.6);transition:.18s;overflow:hidden;text-align:left;color:var(--txt)}
+.room::after{content:"";position:absolute;inset:0;border-radius:16px;pointer-events:none;
+  background:radial-gradient(120px 60px at 50% 120%,rgba(63,224,255,.18),transparent 70%)}
+.room .ri{font-size:24px;line-height:1;display:block;margin-bottom:5px}
+.room .rn{font-size:13px;font-weight:800;display:block}
+.room .rv{font-size:12px;color:var(--cyan);margin-top:3px;font-variant-numeric:tabular-nums}
+.room .rp{position:absolute;right:8px;top:8px;font-size:11px;color:var(--dim)}
+.room.sel{border-color:var(--cyan);background:rgba(63,224,255,.16);
+  box-shadow:0 0 0 2px rgba(63,224,255,.35),0 8px 24px rgba(63,224,255,.2)}
+.room.mine{border-color:var(--gold);background:rgba(255,215,106,.14)}
+.room.mine::before{content:"已躲避";position:absolute;left:8px;top:8px;font-size:10px;
+  background:var(--gold);color:#3a2500;padding:1px 6px;border-radius:6px;font-weight:800}
+.room.dead{border-color:var(--bad);background:rgba(255,107,107,.2);animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.room.safe{border-color:var(--ok);background:rgba(55,230,160,.16)}
+
+/* 下注区 */
+.dock{margin:10px 12px 0;border-radius:18px;border:1px solid var(--line);padding:12px;
+  background:rgba(10,32,54,.6)}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.chip{flex:1;min-width:52px;height:42px;border-radius:12px;background:rgba(255,255,255,.07);
+  font-weight:800;font-variant-numeric:tabular-nums;font-size:14px}
+.chip.on{background:linear-gradient(120deg,#1ea8c8,#3fe0ff);color:#04222e}
+.chip:disabled{opacity:.45}
+.dis{opacity:.45;pointer-events:none}
+.hint{font-size:12px;color:var(--dim);text-align:center;margin-top:8px}
+.hint b{color:var(--cyan)}
+
+/* 侧边按钮 */
+.side{position:fixed;right:10px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:30;
+  display:flex;flex-direction:column;gap:9px}
+.side button{width:46px;height:46px;border-radius:14px;background:rgba(10,40,68,.9);
+  border:1px solid var(--line);font-size:19px;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 18px rgba(0,20,40,.5)}
+
+/* 弹层 */
+.sheet{position:fixed;inset:0;z-index:50;background:rgba(2,10,20,.72);backdrop-filter:blur(4px);
+  display:flex;align-items:flex-end;justify-content:center}
+.sheet .box{width:100%;max-width:520px;max-height:88vh;overflow-y:auto;background:linear-gradient(180deg,#0a2440,#071b2e);
+  border:1px solid var(--line);border-radius:22px 22px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom));
+  animation:up .22s ease}
+@keyframes up{from{transform:translateY(30px);opacity:.4}}
+.shead{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.shead h3{margin:0;font-size:18px;font-weight:900}
+.shead .x{margin-left:auto;width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.08);font-size:16px}
+.sec{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.sec h4{margin:0 0 10px;font-size:14px;display:flex;align-items:center;gap:6px}
+.row{display:flex;gap:8px;align-items:center}
+.kv{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.08)}
+.kv:last-child{border:0}
+.kv b{font-variant-numeric:tabular-nums}
+.qq{background:linear-gradient(120deg,rgba(255,95,158,.16),rgba(255,215,106,.14));
+  border:1px dashed rgba(255,215,106,.45);border-radius:14px;padding:12px;text-align:center;
+  font-size:13px;line-height:1.8;margin-top:10px}
+.qq b{color:var(--gold);font-size:15px;letter-spacing:1px}
+.bar{height:8px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#1ea8c8,#3fe0ff);border-radius:6px}
+
+/* 列表 */
+.list{display:flex;flex-direction:column;gap:7px;font-size:13px}
+.li{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:12px;background:rgba(255,255,255,.05)}
+.li .rk{width:24px;text-align:center;font-weight:900;color:var(--gold)}
+.li .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li .vl{font-weight:800;color:var(--cyan);font-variant-numeric:tabular-nums}
+.li.me{background:rgba(63,224,255,.14);border:1px solid var(--line)}
+.crown{font-size:17px}
+.hits{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.hit{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;padding:9px 4px;text-align:center}
+.hit .n{font-size:11px;color:var(--dim)}
+.hit .v{font-size:15px;font-weight:900;color:var(--bad);margin-top:3px}
+
+/* 开奖动画 */
+.reveal{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:12px;background:rgba(2,10,20,.86);backdrop-filter:blur(6px);text-align:center;padding:24px}
+.reveal .big{font-size:74px;animation:pop .5s}
+@keyframes pop{0%{transform:scale(.4) rotate(-12deg)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+.reveal h2{margin:0;font-size:24px;font-weight:900}
+.reveal .w{font-size:32px;font-weight:900;color:var(--gold);letter-spacing:4px}
+.reveal p{margin:0;color:var(--dim);font-size:14px;line-height:1.8}
+.reveal .rs{margin-top:8px;font-size:15px}
+
+.toast{position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top));transform:translateX(-50%) translateY(-8px);
+  background:rgba(6,22,38,.95);border:1px solid var(--line);padding:10px 16px;border-radius:12px;
+  font-size:13.5px;z-index:99;opacity:0;transition:.22s;pointer-events:none;max-width:86vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.foot{text-align:center;font-size:11px;color:rgba(234,246,255,.4);padding:14px 20px 8px;line-height:1.7}
+
+@media(min-width:820px){
+  #app{max-width:900px;margin:0 auto}
+  .rooms{grid-template-columns:repeat(4,1fr)}
+  .side{right:auto;left:calc(50% + 470px)}
+}
+</style>
+</head>
+<body>
+<div class="aqua"></div>
+<div class="bubbles" id="bubbles"></div>
+<div class="toast" id="toast"></div>
+
+<!-- ================= 登录 ================= -->
+<section class="screen" id="auth">
+  <div class="logo">🐙</div>
+  <h1 class="ttl">海域逃亡</h1>
+  <p class="sub">投入贝壳躲进房间，别被狼人选中</p>
+
+  <div class="panel">
+    <div class="tabs">
+      <button class="tab on" id="tabLogin">登录</button>
+      <button class="tab" id="tabReg">注册</button>
+    </div>
+    <p class="lab">昵称</p>
+    <input class="inp" id="uName" maxlength="14" placeholder="2-14 个字符" autocomplete="off">
+    <p class="lab" style="margin-top:12px" id="pwdLab">密码</p>
+    <input class="inp" id="uPwd" type="password" maxlength="30" placeholder="至少 6 位">
+    <input class="inp hide" id="uPwd2" type="password" maxlength="30" placeholder="再输入一次" style="margin-top:8px">
+    <button class="btn grad" id="authBtn" style="width:100%;margin-top:16px">进入深海</button>
+    <p class="tip" id="authTip">新玩家注册即送 <b>10 枚贝壳</b> 启动资金 🪙</p>
+    <div class="once" id="regOnce">
+      🎁 <b>注册赠礼每位玩家仅发放一次</b><br>
+      之后系统不再发放，贝壳需通过 CDK 兑换、游戏赢得或好友转赠获得。
+    </div>
+
+    <details id="cfgBox" style="margin-top:14px">
+      <summary>⚙️ 服务器配置（换设备首次需要）</summary>
+      <p class="lab" style="margin-top:10px">Supabase Project URL</p>
+      <input class="inp" id="cfgUrl" placeholder="https://xxxx.supabase.co">
+      <p class="lab" style="margin-top:10px">anon / publishable key</p>
+      <input class="inp" id="cfgKey" placeholder="eyJhbGciOi...">
+      <button class="btn mini" id="cfgSave" style="width:100%;margin-top:10px">保存配置</button>
+      <p class="tip">在 supabase.com 免费建项目，Project Settings → Data API / API Keys 里复制这两项。</p>
+    </details>
+  </div>
+
+  <div class="panel" style="margin-top:14px">
+    <h4 style="margin:0 0 11px;font-size:14px">🪙 贝壳从哪来</h4>
+    <div class="srcs">
+      <div class="src"><span>🎁</span><b>注册赠礼</b><i>10 枚 · 每位玩家仅一次</i></div>
+      <div class="src"><span>🎟️</span><b>CDK 兑换</b><i>每天 20 枚 × 30 天</i></div>
+      <div class="src"><span>🐙</span><b>游戏赢得</b><i>幸存者瓜分贝壳，可转赠</i></div>
+      <div class="src"><span>🤝</span><b>好友转赠</b><i>100 枚起，即时到账</i></div>
+    </div>
+    <p class="tip" style="margin-bottom:0">
+      ⚠️ 系统<b>只在首次注册时发放一次</b>贝壳，之后不再发放；游戏赢来的贝壳与其他贝壳完全相同，同样可以自由转赠。
+    </p>
+  </div>
+
+  <div class="warn" style="max-width:420px">
+    🪙 <b>贝壳为纯娱乐积分</b>：不具有任何货币或财产价值，不能提现、不能出售、不能反向兑换现金或任何实物／虚拟资产，仅限本网站内游戏与排行榜使用。<br>
+    🔒 每个网络环境（IP）仅可注册 1 个账号。
+  </div>
+</section>
+
+<!-- ================= 主界面 ================= -->
+<section class="screen hide" id="app">
+  <div class="topbar">
+    <div class="brand">🐙 海域逃亡</div>
+    <div class="wallet" id="wShells">🪙 0</div>
+    <div class="wallet pearl" id="wPearls">🫧 0</div>
+    <div style="flex:1"></div>
+    <div class="wrap"><button class="ico" id="btnWallet">💰</button><span class="badge hide" id="dotClaim">!</span></div>
+    <div class="wrap"><button class="ico" id="btnRank">🏆</button></div>
+    <div class="wrap"><button class="ico" id="btnRec">📜</button></div>
+    <div class="wrap"><button class="ico hide" id="btnAdmin" title="管理员后台">🔱</button></div>
+    <div class="wrap"><button class="ico" id="btnRule">❓</button></div>
+    <div class="wrap"><button class="ico" id="btnQuit">⏻</button></div>
+  </div>
+
+  <div class="period">
+    <span class="pno" id="pNo">第 ---- 期</span>
+    <span id="pPool" style="color:var(--dim)">本期贝壳 0</span>
+    <span class="cd" id="pCd">--</span>
+  </div>
+
+  <div class="map">
+    <div class="rooms" id="rooms"></div>
+    <p class="hint" id="lastHint" style="margin-top:12px"></p>
+  </div>
+
+  <div class="dock">
+    <div class="chips" id="chips"></div>
+    <div class="row">
+      <button class="btn grad" id="betBtn" style="flex:1">支援贝壳</button>
+      <button class="btn mini" id="refreshBtn">🔄</button>
+    </div>
+    <p class="hint" id="dockHint">先选一间房间躲避，再投入贝壳</p>
+  </div>
+
+  <p class="foot">
+    🪙 贝壳为纯娱乐积分，无货币价值、不可提现、不可反向兑换 · 未满 18 岁请在监护人陪同下娱乐
+  </p>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+/* ================= 常量 ================= */
+const ROOMS = [
+  {n:'观潮室', i:'🔭'}, {n:'潜艇室', i:'🚤'}, {n:'修养室', i:'🛏️'}, {n:'探秘室', i:'🔍'},
+  {n:'鳞光室', i:'✨'}, {n:'祈祷室', i:'🙏'}, {n:'藏宝室', i:'💎'}, {n:'深潜舱', i:'🛰️'},
+];
+const CHIPS = [0.1, 1, 5, 10, 50];
+// ============================================================
+//  部署前把你的 Supabase 信息填进下面两行，访客打开网页就能直接玩，
+//  不用每个人再去填配置。（填好后重新上传一次文件即可）
+//  获取方式：supabase.com → 你的项目 → Project Settings → Data API / API Keys
+// ============================================================
+const BUILTIN_URL = '';   // 例：'https://abcdefgh.supabase.co'
+const BUILTIN_KEY = '';   // 例：'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'（只填 anon / publishable）
+
+const CFG = {
+  get url(){ return localStorage.getItem('sea_url') || BUILTIN_URL || '' },
+  get key(){ return localStorage.getItem('sea_key') || BUILTIN_KEY || '' },
+  get token(){ return localStorage.getItem('sea_token')||'' },
+  set(k,v){ localStorage.setItem('sea_'+k,v) },
+  del(k){ localStorage.removeItem('sea_'+k) },
+};
+
+const $ = id => document.getElementById(id);
+const num = v => Math.round((Number(v)||0)*100)/100;
+const fmt = v => { const n = Number(v)||0;
+  return n >= 1000000 ? (n/1000000).toFixed(2)+'M' : (n >= 10000 ? (n/1000).toFixed(2)+'K' : String(Math.round(n*100)/100)); };
+const esc = s => String(s==null?'':s).replace(/[<>&"]/g,m=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[m]));
+
+let SB = null, TOK = CFG.token;
+const S = { me:null, round:null, last:null, sel:null, chip:1, offset:0, myNo:null,
+            deadRoom:null, safeRoom:null, revealTimer:null, refreshTimer:null, cdTimer:null };
+
+/* ================= 基础 ================= */
+function toast(t, ms){ const e=$('toast'); e.textContent=t; e.classList.add('on');
+  clearTimeout(e._t); e._t=setTimeout(()=>e.classList.remove('on'), ms||2200); }
+function ensureSB(){
+  if(SB) return SB;
+  if(!CFG.url || !CFG.key){ toast('请先填写服务器配置'); $('cfgBox').open = true; return null; }
+  SB = window.supabase.createClient(CFG.url, CFG.key);
+  return SB;
+}
+async function rpc(fn, args={}){
+  const sb = ensureSB(); if(!sb) return {ok:false, msg:'未配置服务器'};
+  try{
+    const {data, error} = await sb.rpc(fn, args);
+    if(error) throw error;
+    return data || {ok:false, msg:'返回为空'};
+  }catch(e){
+    const m = String(e.message||e);
+    if(/未登录|过期/.test(m)){ TOK=''; CFG.del('token'); goAuth(); }
+    toast(m.replace(/^ERROR:\s*/,'').slice(0,60));
+    return {ok:false, msg:m};
+  }
+}
+function goAuth(){ $('app').classList.add('hide'); $('auth').classList.remove('hide'); }
+function goApp(){ $('auth').classList.add('hide'); $('app').classList.remove('hide'); }
+
+/* ================= 登录 / 注册 ================= */
+let mode = 'login';
+function setMode(m){
+  mode = m;
+  $('tabLogin').classList.toggle('on', m==='login');
+  $('tabReg').classList.toggle('on', m==='reg');
+  $('uPwd2').classList.toggle('hide', m==='login');
+  $('authBtn').textContent = m==='login' ? '进入深海' : '注册并领取 10 贝壳';
+  $('authTip').innerHTML = m==='login'
+    ? '还没账号？点上方「注册」，<b>送 10 枚贝壳</b>（每位玩家仅一次）'
+    : '注册送 <b>10 枚贝壳</b>，仅此一次 · <b>每个网络限注册 1 个账号</b>';
+  $('regOnce').classList.toggle('hide', m==='login');
+}
+async function doAuth(){
+  const n = $('uName').value.trim(), p = $('uPwd').value;
+  if(!n || !p){ toast('请填写昵称和密码'); return; }
+  const btn = $('authBtn'); btn.disabled = true; btn.textContent = '连接中…';
+  let r;
+  if(mode === 'login'){ r = await rpc('api_login', {p_username:n, p_password:p}); }
+  else{
+    if(p !== $('uPwd2').value){ toast('两次密码不一致'); btn.disabled=false; setMode('reg'); return; }
+    r = await rpc('api_register', {p_username:n, p_password:p});
+  }
+  btn.disabled = false; setMode(mode);
+  if(!r.ok){ return; }
+  TOK = r.token; CFG.set('token', TOK);
+  $('uPwd').value=''; $('uPwd2').value='';
+  goApp(); boot();
+  if(mode === 'reg'){
+    setTimeout(()=>toast(`注册成功！赠送 ${num(r.gift||10)} 枚贝壳（每位玩家仅此一次）🎉`, 3200), 600);
+  }
+}
+
+/* ================= 启动 & 轮询 ================= */
+async function boot(){
+  const r = await rpc('api_me', {p_token:TOK});
+  if(!r.ok) return;
+  S.me = r.user; S.me._claimable = num(r.claimable) > 0;
+  $('btnAdmin').classList.toggle('hide', !r.user.is_admin);
+  paintWallet();
+  await refreshRound(true);
+  clearInterval(S.refreshTimer);
+  S.refreshTimer = setInterval(()=>refreshRound(false), 1500);
+}
+function paintWallet(){
+  if(!S.me) return;
+  $('wShells').textContent = '🪙 ' + fmt(S.me.shells);
+  $('wPearls').textContent = '🫧 ' + S.me.pearls;
+  $('dotClaim').classList.toggle('hide', !S.me._claimable);
+}
+
+async function refreshRound(first){
+  const r = await rpc('api_current_round', {p_token:TOK});
+  if(!r.ok || !r.round) return;
+  const serverNow = new Date(r.server_now).getTime();
+  S.offset = serverNow - Date.now();
+  const no = r.round.no;
+
+  // 期号变化 → 触发结算/开奖
+  if(S.myNo !== null && no !== S.myNo){
+    handleNewRound();
+  }
+  S.myNo = no;
+  S.round = r.round; S.last = r.last;
+  if(r.me){ S.me.shells = num(r.me.shells); S.me.pearls = r.me.pearls; paintWallet(); }
+  if(r.my && r.my !== 'null' && r.my.room){
+    S.sel = r.my.room; S.myAmount = num(r.my.amount); S.myBetLocked = true;
+  } else if(S.round && S.round.players === 0 && !S.myBetLocked){ S.sel = null; }
+  if(S.myBetLocked && (!r.my || r.my === 'null')){ S.myBetLocked = false; S.myAmount = 0; }
+  if(first && r.last && r.last !== 'null' && r.last.killer_room){
+    S.last = r.last;
+  }
+  paintRooms();
+  paintPeriod();
+  startCd();
+}
+
+function startCd(){
+  clearInterval(S.cdTimer);
+  S.cdTimer = setInterval(()=>{
+    if(!S.round) return;
+    const end = new Date(S.round.close_at).getTime();
+    const left = Math.max(0, Math.round((end - (Date.now()+S.offset))/1000));
+    const el = $('pCd');
+    el.textContent = left + ' 秒';
+    el.classList.toggle('hot', left <= 10);
+    if(left <= 0){
+      el.textContent = '开奖中…';
+      clearInterval(S.cdTimer);
+      doSettle();
+    }
+  }, 250);
+}
+async function doSettle(){
+  const r = await rpc('api_settle_if_due', {p_token:TOK});
+  if(r && r.ok && r.killer){ showReveal(r); }
+  setTimeout(()=>refreshRound(false), 600);
+}
+function handleNewRound(){
+  S.sel = null; S.selRoom = null; S.myBetLocked = false; S.myAmount = 0;
+  setTimeout(()=>{ refreshRound(false); updateDock(); }, 500);
+}
+
+function paintPeriod(){
+  $('pNo').textContent = '第 ' + S.round.no + ' 期';
+  $('pPool').textContent = '本期贝壳 ' + fmt(S.round.pool) + ' · ' + S.round.players + ' 人躲避';
+  if(S.last && S.last !== 'null' && S.last.killer_room){
+    $('lastHint').innerHTML = `上期狼人去了 <b>【${ROOMS[S.last.killer_room-1].n}】</b>`;
+  } else $('lastHint').textContent = '等待首期开奖…';
+}
+
+function paintRooms(){
+  const box = $('rooms'); box.innerHTML = '';
+  const totals = {};
+  (S.round.rooms||[]).forEach(x=> totals[x.i] = x);
+  ROOMS.forEach((rm, idx)=>{
+    const n = idx+1;
+    const t = totals[n];
+    const b = document.createElement('button');
+    let cls = 'room';
+    if(S.sel === n) cls += ' mine';
+    else if(S.selRoom === n) cls += ' sel';
+    if(S.deadRoom === n) cls += ' dead';
+    if(S.safeRoom === n) cls += ' safe';
+    b.className = cls;
+    b.innerHTML = `<span class="ri">${rm.i}</span><span class="rn">${rm.n}</span>
+      <span class="rv">🪙 ${fmt(t?t.total:0)}</span><span class="rp">${t?t.players:0} 人</span>`;
+    b.onclick = ()=>{
+      if(S.myBetLocked && n !== S.sel){ toast('本期已选房间，不能改换（可继续增投）'); return; }
+      S.selRoom = (S.selRoom === n) ? null : n;
+      paintRooms(); updateDock();
+    };
+    box.appendChild(b);
+  });
+}
+function updateDock(){
+  const inRoom = S.selRoom || S.sel;
+  $('dockHint').innerHTML = inRoom
+    ? `目标是 <b>${ROOMS[inRoom-1].n}</b>，本次投入 ${S.chip} 枚${S.sel?`（累计已投 🪙 ${fmt(S.myAmount||0)}）`:''}`
+    : '先选一间房间躲避，再投入贝壳';
+  $('betBtn').classList.toggle('dis', !inRoom);
+}
+
+/* ================= 下注 ================= */
+async function placeBet(){
+  const room = S.selRoom || S.sel;
+  if(!room){ toast('先选一间房间'); return; }
+  const btn = $('betBtn'); btn.disabled = true;
+  const r = await rpc('api_place_bet', {p_token:TOK, p_room:room, p_amount:S.chip});
+  btn.disabled = false;
+  if(!r.ok) return;
+  S.sel = room; S.selRoom = null; S.myBetLocked = true;
+  S.me.shells = num(r.shells); paintWallet();
+  toast(`已在【${ROOMS[room-1].n}】投入 ${S.chip} 枚`);
+  refreshRound(false);
+}
+
+/* ================= 开奖动画 ================= */
+function showReveal(r){
+  const room = ROOMS[r.killer-1];
+  const alive = S.sel && S.sel !== r.killer;
+  const dead  = S.sel === r.killer;
+  S.deadRoom = r.killer;
+  S.safeRoom = dead ? null : S.sel;
+  const el = document.createElement('div');
+  el.className = 'reveal';
+  el.innerHTML = `
+    <div class="big">${dead ? '💀' : (S.sel ? '🎉' : '🐺')}</div>
+    <h2>狼人出现在</h2>
+    <div class="w">【${room.n}】</div>
+    <p>${room.i} 本期共 ${fmt(r.killed_amt)} 枚贝壳被卷走<br>海神殿收取 ${fmt(r.house)} 枚</p>
+    <div class="rs">${dead ? '<b style="color:#ff6b6b">你被狼人选中了，获得 🫧 珍珠 ×1</b>'
+            : (alive ? '<b style="color:#37e6a0">你幸免于难，贝壳已分配到账</b>'
+                     : '本期你没有参与')}</div>`;
+  document.body.appendChild(el);
+  clearTimeout(S.revealTimer);
+  S.revealTimer = setTimeout(()=>{ el.remove(); S.deadRoom=null; S.safeRoom=null; paintRooms(); }, 3200);
+  paintRooms();
+}
+
+/* ================= 弹层框架 ================= */
+function sheet(title, html){
+  const s = document.createElement('div'); s.className = 'sheet';
+  s.innerHTML = `<div class="box"><div class="shead"><h3>${title}</h3>
+    <button class="x" data-close>✕</button></div>${html}</div>`;
+  s.addEventListener('click', e=>{ if(e.target === s || e.target.hasAttribute('data-close')) s.remove(); });
+  document.body.appendChild(s);
+  return s;
+}
+
+/* ================= 钱包 ================= */
+async function openWallet(){
+  const r = await rpc('api_me', {p_token:TOK});
+  if(!r.ok) return;
+  S.me = r.user; S.me._claimable = num(r.claimable) > 0;
+  paintWallet();
+  const relHtml = (r.releases||[]).length ? r.releases.map(x=>{
+    const pct = Math.min(100, Math.round(x.released / x.total * 100));
+    return `<div class="kv"><span>🎟️ ${esc(x.code)}</span>
+      <b>${fmt(x.released)} / ${fmt(x.total)}</b></div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div style="font-size:11.5px;color:var(--dim);margin:4px 0 10px">
+        每天释放 20 枚 · 已释放 ${x.released_days}/${x.days} 天</div>`;
+  }).join('') : '<p style="font-size:12.5px;color:var(--dim);margin:0">还没有兑换记录</p>';
+
+  const s = sheet('💰 我的钱包', `
+    <div class="sec">
+      <div class="kv"><span>可用贝壳</span><b style="color:#ffd76a">🪙 ${fmt(r.user.shells)}</b></div>
+      <div class="kv"><span>珍珠（荣誉）</span><b>🫧 ${r.user.pearls}</b></div>
+      <div class="kv"><span>释放中（未到账）</span><b style="color:#3fe0ff">🪙 ${fmt(r.pending)}</b></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn grad" id="claimBtn" style="flex:1">领取到期贝壳（${fmt(r.claimable)}）</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h4>🪙 贝壳从哪来</h4>
+      <div class="srcs">
+        <div class="src"><span>🎁</span><b>注册赠礼</b><i>10 枚 · 每位玩家仅一次</i></div>
+        <div class="src"><span>🎟️</span><b>CDK 兑换</b><i>每天 20 枚 × 30 天</i></div>
+        <div class="src"><span>🐙</span><b>游戏赢得</b><i>幸存者瓜分，可自由转赠</i></div>
+        <div class="src"><span>🤝</span><b>好友转赠</b><i>100 枚起，即时到账</i></div>
+      </div>
+      <p class="tip" style="margin-bottom:0">
+        系统<b>只在首次注册时发放一次</b>，之后不再发放。游戏赢来的贝壳与任何其他贝壳完全等价，同样可以自由转赠。
+      </p>
+    </div>
+
+    <div class="sec">
+      <h4>🔄 转赠贝壳</h4>
+      <p class="lab">对方昵称</p>
+      <input class="inp" id="tfTo" placeholder="输入对方的昵称" autocomplete="off">
+      <p class="lab" style="margin-top:10px">数量（100 枚起）</p>
+      <input class="inp" id="tfAmt" type="number" inputmode="decimal" placeholder="最少 100" value="100">
+      <button class="btn grad" id="tfBtn" style="width:100%;margin-top:12px">确认转赠</button>
+      <div class="qq">
+        🎟️ <b>没有贝壳？用 CDK 兑换</b><br>
+        CDK 需联系管理员 QQ 群获取：<br><b>9121449343</b><br>
+        <span style="font-size:11.5px;color:var(--dim)">进群后向管理员索取兑换码，在游戏内填入即可</span>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h4>🎟️ CDK 兑换</h4>
+      <input class="inp" id="cdkInp" placeholder="输入 CDK，如 ABCD-EFGH-JKLM" autocomplete="off">
+      <button class="btn gold" id="cdkBtn" style="width:100%;margin-top:10px;color:#3a2500">立即兑换</button>
+      <p class="tip" style="margin-top:10px">
+        兑换后贝壳<b>不会一次性到账</b>：按 <b>每天 20 枚</b> 逐步释放，共 <b>30 天</b> 领完（合计 600 枚），
+        首日额度兑换时立即到账，之后每天回来点「领取」即可。<br>
+        🎟️ <b>CDK 需联系管理员 QQ 群 9121449343 获取</b>
+      </p>
+    </div>
+
+    <div class="sec">
+      <h4>📈 释放进度</h4>
+      ${relHtml}
+    </div>
+
+    <div class="warn">🪙 贝壳为纯娱乐积分，无货币价值、不可提现、不可反向兑换现金或任何实物／虚拟资产。</div>
+  `);
+
+  $('claimBtn').onclick = async ()=>{
+    const c = await rpc('api_claim_release', {p_token:TOK});
+    if(c.ok){ toast(num(c.claimed)>0 ? `到账 ${fmt(c.claimed)} 枚 🎉` : '暂无到期额度'); s.remove(); openWallet(); }
+  };
+  $('tfBtn').onclick = async ()=>{
+    const to = $('tfTo').value.trim(), amt = Number($('tfAmt').value);
+    if(!to){ toast('填写对方昵称'); return; }
+    if(!(amt >= 100)){ toast('转赠门槛为 100 枚起'); return; }
+    const t = await rpc('api_transfer', {p_token:TOK, p_to:to, p_amount:amt});
+    if(t.ok){ toast(t.msg); s.remove(); refreshRound(false); }
+  };
+  $('cdkBtn').onclick = async ()=>{
+    const code = $('cdkInp').value.trim();
+    if(!code){ toast('请输入 CDK'); return; }
+    const t = await rpc('api_redeem_cdk', {p_token:TOK, p_code:code});
+    if(t.ok){ toast(t.msg, 3500); s.remove(); openWallet(); refreshRound(false); }
+  };
+}
+
+/* ================= 排行榜 ================= */
+async function openRank(){
+  const r = await rpc('api_leaderboard'); if(!r.ok) return;
+  const medal = ['🥇','🥈','🥉'];
+  const top = (r.top||[]).map((u,i)=>`
+    <div class="li ${u.name===S.me?.name?'me':''}">
+      <span class="rk">${i<3?medal[i]:(i+1)}</span>
+      <span style="font-size:16px">${u.avatar}</span>
+      <span class="nm">${esc(u.name)}</span>
+      <span class="vl">🪙 ${fmt(u.shells)}</span>
+      <span style="font-size:12px;color:var(--dim)">🫧${u.pearls}</span>
+    </div>`).join('') || '<p style="font-size:13px;color:var(--dim)">暂无数据</p>';
+  const wk = (r.week||[]).map((u,i)=>`
+    <div class="li"><span class="rk">${i+1}</span><span>${u.avatar}</span>
+      <span class="nm">${esc(u.name)}</span><span class="vl">投入 ${fmt(u.amount)}</span>
+      <span style="font-size:12px;color:var(--dim)">${u.times} 期</span></div>`).join('')
+    || '<p style="font-size:13px;color:var(--dim)">本周还没有人下场</p>';
+
+  sheet('🏆 排行榜', `
+    <div class="sec"><h4>🌊 贝壳总榜</h4><div class="list">${top}</div></div>
+    <div class="sec"><h4>🔥 本周活跃（投入榜）</h4><div class="list">${wk}</div></div>
+    <div class="warn">排行榜仅用于娱乐荣誉展示，贝壳无任何实际价值。</div>`);
+}
+
+/* ================= 记录 ================= */
+async function openRec(){
+  const r = await rpc('api_records', {p_token:TOK}); if(!r.ok) return;
+  const hits = (r.hits||[]);
+  const grid = ROOMS.map((rm,i)=>{
+    const h = hits.find(x=>x.room === i+1);
+    return `<div class="hit"><div style="font-size:17px">${rm.i}</div>
+      <div class="n">${rm.n}</div><div class="v">${h?h.times:0}</div></div>`;
+  }).join('');
+  const recent = (r.recent||[]).map(x=>`
+    <div class="li"><span class="rk">${x.no}</span>
+      <span class="nm">狼人去了 ${ROOMS[x.killer_room-1].i} ${ROOMS[x.killer_room-1].n}</span>
+      <span class="vl" style="color:var(--bad)">💀 ${fmt(x.killed_amt)}</span></div>`).join('')
+    || '<p style="font-size:13px;color:var(--dim)">还没有开奖记录</p>';
+  const mine = (r.mine||[]).map(x=>{
+    const dead = x.killer_room === x.room;
+    const win = x.payout != null ? num(x.payout) - num(x.amount) : null;
+    return `<div class="li"><span class="rk">${x.no}</span>
+      <span class="nm">${ROOMS[x.room-1].i} ${ROOMS[x.room-1].n}</span>
+      <span class="vl">投入 ${fmt(x.amount)}</span>
+      <span style="font-size:12px;color:${win==null?'var(--dim)':(win>=0?'var(--ok)':'var(--bad)')}">
+        ${win==null?'等待开奖':(dead?'💀 被抓':(win>=0?'+'+fmt(win):fmt(win)))}</span></div>`;
+  }).join('') || '<p style="font-size:13px;color:var(--dim)">你还没有参与记录</p>';
+  const st = r.stat || {};
+
+  sheet('📜 记录', `
+    <div class="sec"><h4>💀 房间被袭击次数</h4><div class="hits">${grid}</div></div>
+    <div class="sec"><h4>🕐 最近 10 期</h4><div class="list">${recent}</div></div>
+    <div class="sec"><h4>🙋 我的参与</h4><div class="list">${mine}</div>
+      <div class="kv"><span>参与期数</span><b>${st.rounds||0}</b></div>
+      <div class="kv"><span>累计投入</span><b>🪙 ${fmt(st.invested)}</b></div>
+      <div class="kv"><span>累计获得</span><b>🪙 ${fmt(st.gained)}</b></div>
+      <div class="kv"><span>珍珠</span><b>🫧 ${st.pearls||0}</b></div>
+    </div>`);
+}
+
+/* ================= 玩法 ================= */
+function openRule(){
+  sheet('❓ 玩法介绍', `
+    <div class="sec">
+      <h4>🐙 怎么玩</h4>
+      <p style="font-size:13px;line-height:1.9;margin:0">
+        1. 每期 60 秒，选一间房间<b>投入贝壳</b>躲进去（可增投，不可撤回、不可换房）<br>
+        2. 时间一到，<b>狼人随机闯进一间房</b><br>
+        3. 被闯入房间的人失去本期投入的贝壳，但获得 <b>🫧 珍珠 ×1</b><br>
+        4. 幸存者按投入比例<b>瓜分</b>被卷走贝壳的 <b>95%</b><br>
+        5. 剩余 <b>5%</b> 沉入海神殿（用于活动奖池，不可提现）<br>
+        6. 若无人被抓，本金<b>全额退回</b>
+      </p>
+    </div>
+    <div class="sec">
+      <h4>🪙 贝壳获取渠道</h4>
+      <p style="font-size:13px;line-height:1.9;margin:0">
+        · <b>注册赠礼 10 枚</b>：每位玩家<b>仅发放一次</b>，注册后不再发放<br>
+        · <b>游戏赢得</b>：幸存者瓜分被卷走贝壳的 95%，赢来的贝壳<b>可自由转赠</b><br>
+        · <b>好友转赠</b>：他人转赠给你的贝壳，100 枚起<br>
+        · <b>CDK 兑换</b>：系统后续<b>唯一</b>的发放途径，需 CDK 激活
+      </p>
+    </div>
+    <div class="sec">
+      <h4>🎟️ CDK 与释放</h4>
+      <p style="font-size:13px;line-height:1.9;margin:0">
+        · <b>CDK 需联系管理员 QQ 群 9121449343 获取</b><br>
+        · 兑换后按 <b>每天 20 枚</b> 释放，共 30 天，合计 600 枚；<br>
+        · 首日额度兑换时立即到账，之后每天回来点「领取」即可
+      </p>
+    </div>
+    <div class="sec">
+      <h4>🔄 转赠</h4>
+      <p style="font-size:13px;line-height:1.9;margin:0">
+        · 玩家之间可互相转赠贝壳，<b>100 枚起</b>，单次上限 100000 枚<br>
+        · 转赠即时到账，不可撤销，请输入正确的对方昵称<br>
+        · 注册赠礼、CDK 释放、游戏赢得的贝壳<b>均可转赠</b>，无任何来源限制
+      </p>
+    </div>
+    <div class="warn">
+      🪙 <b>贝壳为纯娱乐积分</b>：不具有任何货币或财产价值，不能提现、不能出售、不能反向兑换现金或任何实物／虚拟资产，
+      仅限本站内游戏、转赠与排行榜使用。本游戏不含任何法定货币充值入口。<br><br>
+      🔒 每个网络环境（IP）仅可注册 1 个账号。<br>
+      ⚠️ 请理性娱乐，未成年人请在监护人陪同下使用。
+    </div>`);
+}
+
+/* ================= 初始化 ================= */
+function buildUI(){
+  // 气泡
+  const bb = $('bubbles');
+  for(let i=0;i<14;i++){
+    const b = document.createElement('i');
+    const s = 4 + Math.random()*10;
+    b.style.cssText = `width:${s}px;height:${s}px;left:${Math.random()*100}%;
+      animation-duration:${8+Math.random()*10}s;animation-delay:${-Math.random()*12}s`;
+    bb.appendChild(b);
+  }
+  // 筹码
+  const cbox = $('chips');
+  CHIPS.forEach(v=>{
+    const b = document.createElement('button');
+    b.className = 'chip' + (v===S.chip?' on':'');
+    b.textContent = v;
+    b.onclick = ()=>{ S.chip = v; [...cbox.children].forEach(x=>x.classList.remove('on'));
+      b.classList.add('on'); updateDock(); };
+    cbox.appendChild(b);
+  });
+  // 配置回填
+  $('cfgUrl').value = CFG.url; $('cfgKey').value = CFG.key;
+  if(!CFG.url || !CFG.key) $('cfgBox').open = true;
+}
+
+$('tabLogin').onclick = ()=>setMode('login');
+$('tabReg').onclick  = ()=>setMode('reg');
+$('authBtn').onclick = doAuth;
+$('uPwd').addEventListener('keydown', e=>{ if(e.key==='Enter') doAuth(); });
+$('uPwd2').addEventListener('keydown', e=>{ if(e.key==='Enter') doAuth(); });
+$('cfgSave').onclick = ()=>{
+  const u = $('cfgUrl').value.trim().replace(/\/+$/,''), k = $('cfgKey').value.trim();
+  if(!/^https:\/\/.+\.supabase\.(co|in)$/.test(u)){ toast('URL 格式应为 https://xxx.supabase.co'); return; }
+  if(k.length < 40){ toast('Key 看起来不完整'); return; }
+  CFG.set('url',u); CFG.set('key',k); SB = null; toast('配置已保存 ✅');
+};
+$('betBtn').onclick = placeBet;
+$('refreshBtn').onclick = ()=>{ refreshRound(false); toast('已刷新'); };
+$('btnWallet').onclick = openWallet;
+$('btnRank').onclick = openRank;
+$('btnRec').onclick = openRec;
+$('btnRule').onclick = openRule;
+$('btnAdmin').onclick = ()=>{ location.href = 'admin.html'; };
+$('btnQuit').onclick = async ()=>{
+  await rpc('api_logout', {p_token:TOK});
+  TOK=''; CFG.del('token'); S.me=null; S.myNo=null;
+  clearInterval(S.refreshTimer); clearInterval(S.cdTimer);
+  goAuth();
+};
+
+buildUI(); setMode('login');
+if(TOK){ goApp(); boot(); }
+</script>
+</body>
+</html>
